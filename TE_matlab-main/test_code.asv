@@ -1,0 +1,296 @@
+% Load the spike signal data
+load('../Data/combined_active_data.mat');
+
+% Extract spike times for each channel
+
+spike_signal = false(length(channel_idx),max(frameno)/100+100);
+
+for i = 1:length(channel_idx)
+    spike_times = frameno(channel == channel_idx(i));
+    spike_times = spike_times/100;
+    spike_signal(i, spike_times) = true; 
+end
+
+% Define the Gaussian kernel
+sigma_10 = 10; % Standard deviation
+sigma_100 = 100;
+kernel_size_10 = 5 * sigma_10; % Kernel size 200 frames = 10 ms
+kernel_size_100 = 5 * sigma_100; % Kernel size 200 frames = 10 ms 
+kernel_10 = exp(-0.5 * (-kernel_size_10:kernel_size_10).^2 / (2 * sigma_10^2));
+kernel_100 = exp(-0.5 * (-kernel_size_100:kernel_size_100).^2 / (2 * sigma_100^2));
+
+% Precompute the indices for cropping the convolved signal
+crop_start_10 = 5 * sigma_10 + 1;
+crop_end_10 = length(spike_signal) - 5 * sigma_10;
+crop_start_100 = 5 * sigma_100 + 1;
+crop_end_100 = length(spike_signal) - 5 * sigma_100;
+
+% Apply the Gaussian filter to the spike signal for each channel
+spike_signal_smooth_10 = zeros(size(spike_signal));
+spike_signal_smooth_100 = zeros(size(spike_signal));
+
+for m = 1:length(channel_idx)
+    c10 = conv(spike_signal(m, :), kernel_10);
+    spike_signal_smooth_10(m, crop_start_10:crop_end_10) = c10(crop_start_10:crop_end_10);
+
+    c100 = conv(spike_signal(m, :), kernel_100);
+    spike_signal_smooth_100(m, crop_start_100:crop_end_100) = c100(crop_start_100:crop_end_100);
+end
+
+m = 50;
+% Plot the original and filtered spike signals for the first channel
+y1 = 4.00E5;
+y2 = 5.100E5;
+
+figure;
+subplot(3,1,1);
+plot(spike_signal(m, :));
+ylabel('Spike signal');
+title(['Original spike signal (channel=' num2str(m) ')']);
+xlim([y1, y2]);
+
+subplot(3,1,2);
+plot(spike_signal_smooth_10(m, :));
+ylabel('Smoothed spike');
+xlim([y1, y2]);
+title(['Smoothed spike signal (Gaussian filter, \sigma=' num2str(sigma_10) ', kernel size=' num2str(kernel_size_10) ')']);
+
+subplot(3,1,3);
+plot(spike_signal_smooth_100(m, :));
+xlabel('Time (frames)');
+ylabel('Smoothed spike');
+title(['Smoothed spike signal (Gaussian filter, \sigma=' num2str(sigma_100) ', kernel size=' num2str(kernel_size_100) ')']);
+xlim([y1, y2]);
+
+%saveas(gcf,'Dis_TE.png');
+%saveas(gcf,'Dis_TE1.png');
+%saveas(gcf,'Dis_TE2.png');
+
+%---------------------------------------------------------------------------------
+
+% Compute the correlation matrix between the smoothed time series
+correlation_matrix_10 = corrcoef(spike_signal_smooth_10');
+correlation_matrix_100 = corrcoef(spike_signal_smooth_100');
+correlation_matrix_10 = dediag(correlation_matrix_10);
+correlation_matrix_100 = dediag(correlation_matrix_100);
+
+
+correlation_matrix_10_d5 = cross_corr(spike_signal_smooth_10,5);
+correlation_matrix_10_d5 = dediag(correlation_matrix_10_d5);
+
+correlation_matrix_10_d10 = cross_corr(spike_signal_smooth_10,10);
+correlation_matrix_10_d10 = dediag(correlation_matrix_10_d10);
+
+
+
+
+% Plot the correlation matrix
+figure;
+subplot(1, 2, 1);
+imagesc(correlation_matrix_10);
+title('Correlation Matrix (sigma = 10)');
+colorbar;
+
+subplot(1, 2, 2);
+imagesc(correlation_matrix_100);
+title('Correlation Matrix (sigma = 100)');
+colorbar;
+%-------------------------------------------------------------------------------------
+
+
+figure;
+subplot(1, 3, 1);
+imagesc(correlation_matrix_10_d5);
+title('Correlation Matrix (sigma = 10)');
+colorbar;
+
+subplot(1, 3, 2);
+imagesc(correlation_matrix_10_d10);
+title('Correlation Matrix (sigma = 100)');
+colorbar;
+
+subplot(1, 3, 3);
+scatter(correlation_matrix_10(:),correlation_matrix_10_d10(:))
+%title('Correlation Matrix (sigma = 100)');
+colorbar;
+
+
+
+
+%---------------------------------------------------------------------------------------
+%{
+% Define the fixed delay
+fixed_delay = [10,20,30]; % Specify the desired delay in frames
+
+
+% Initialize an empty matrix to store the coincidences at the fixed delay
+coincidences_fixed_delay = false(size(spike_signal_smooth_10, 2), size(spike_signal_smooth_10, 1));
+
+% Find coincidences at the fixed delay for each time point
+for t = fixed_delay+1:size(spike_signal_smooth_10, 2)
+    channels_with_spikes_delayed = find(spike_signal_smooth_10(:, t)); % Find channels with spikes at time t
+    channels_with_spikes_previous = find(spike_signal_smooth_10(:, t-fixed_delay)); % Find channels with spikes at time t-fixed_delay
+    %%%%coincident_channels = intersect(channels_with_spikes_delayed, channels_with_spikes_previous); % Find channels with spikes at both time points
+    coincidences_fixed_delay(t, coincident_channels) = true; % Set the corresponding entries to true
+end
+
+% Find the indices of the coincidences at the fixed delay
+[row_indices_fixed_delay, col_indices_fixed_delay] = find(coincidences_fixed_delay);
+idx = find(eye(100)==0);
+coincidences = coincidences_fixed_delay(idx);
+coincidences = coincidences(coincidences ~=0);      
+
+
+% Plot the coincidences at the fixed delay
+figure;
+histogram(coincidences);
+title('Coincidences at Fixed Delay');
+xlabel('Time (frames)');
+ylabel('Channel');
+
+
+for all pairs of neurons, we count how many coincidences
+for examp 
+for cahnnel 1 and channel 2, at delay 1, how mant time 
+
+%}
+
+%---------------------------------------------------------------------------------------
+% Plot the spatial map of Gaussian filter data
+
+% Define the threshold for spikeTimes values
+threshold = 4e-6; % Adjust this value as per your requirement
+
+% Create a figure
+figure;
+hold on;
+
+% Plot channels as dots
+for i = 1:numel(rates)
+    % Determine the size of the dot based on the rate value
+    dotSize = 1000000 * rates(i);
+    
+    % Plot the channel as a dot
+    scatter(x(i), y(i), dotSize, 'filled', 'MarkerFaceColor', 'b');
+end
+
+% Plot connections based on TE values
+for i = 1:numel(rates)
+    for j = 1:numel(rates)
+        % Skip self-connections
+        if i == j
+            continue;
+        end
+        
+        % Get the TE value for the current connection
+        TE_value = spikeTimes(i, j);
+        
+        % Plot connection if TE value is above threshold
+        if TE_value > threshold
+            % Plot a line connecting the two nodes
+            plot([x(i) x(j)], [y(i) y(j)], 'r');
+        end
+    end
+end
+
+% Set the axis labels and title
+xlabel('X');
+ylabel('Y');
+title('Spatial Map with TE Connections');
+
+% Set the axis limits based on the data range
+xlim([min(x) max(x)]);
+ylim([min(y) max(y)]);
+
+% Display the plot
+hold off;
+
+%---------------------------------------------------------------------
+% Create a figure for spatial map
+figure;
+hold on;
+
+% Plot channels as dots
+for i = 1:numel(rates)
+    % Determine the size of the dot based on the rate value
+    dotSize = 1000000 * rates(i);
+    
+    % Plot the channel as a dot
+    scatter(x(i), y(i), dotSize, 'filled', 'MarkerFaceColor', 'b');
+end
+
+% Plot connections based on correlation values
+threshold = 0.4; % Adjust this threshold as per your requirement
+for i = 1:length(channel_idx)
+    for j = 1:length(channel_idx)
+        if i == j
+            continue; % Skip self-connections
+        end
+        
+        % Get the correlation value for the current connection
+        correlation_value = correlation_matrix_10(i, j); % or correlation_matrix_100
+        
+        % Plot connection if correlation value is above threshold
+        if correlation_value > threshold
+            % Plot a line connecting the two nodes
+            plot([x(i) x(j)], [y(i) y(j)], 'r');
+        end
+    end
+end
+
+% Set the axis labels and title
+xlabel('X');
+ylabel('Y');
+title('Spatial Map with  correlation values Connections');
+
+% Set the axis limits based on the data range
+xlim([min(x) max(x)]);
+ylim([min(y) max(y)]);
+
+% Display the plot
+hold off;
+
+
+
+
+
+
+
+%----------------------------------------------------------------------
+% Functions  
+
+function C=cross_corr(ts,delay)
+
+n=size(ts,1);
+
+C=zeros(n);
+
+for i=1:n
+for j=1:n
+
+    size(ts(i,1:end-delay));
+    C(i,j)=corr(ts(i,1:end-delay)',ts(j,delay+1:end)');
+
+end
+end
+
+end
+
+function C=cross_cov(ts,delay)
+n=size(ts,1);
+C=zeros(n);
+for i=1:n
+for j=1:n
+
+    size(ts(i,1:end-delay));
+    D=corr(ts(i,1:end-delay)',ts(j,delay+1:end)');
+    C(i,j)=D(1,2);
+
+end
+end
+end
+
+function Ad=dediag(A)
+ Ad = A - diag(diag(A));
+end
+
