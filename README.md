@@ -3,6 +3,9 @@
 ## Abtract
 In this thesis, we will analyze neuronal recordings obtained by multi-electrode arrays (MEAs) on in vitro neuronal cultures from prof. Vassanelli's laboratory, trying to estimate synaptic connectivity between the neurons. To this aim, we will adopt several time series analysis techniques, including transfer entropy and coincidence analysis. We will develop a simple in silico dynamical model of the biological neuronal network, building on the standard Izhikevich model and adding some realistic constraints on the network topology. The model will be use to simulate neuronal time series and validate the connectivity inference methods. The end goal of the project is being able to reliably estimate how synaptic connectivity spontaneously varies in time.
 
+## Methods
+
+
 ## Results
 ### 1. Silico analysis
 #### 1.1. Non-bursty simulated data
