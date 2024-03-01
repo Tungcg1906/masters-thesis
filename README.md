@@ -9,7 +9,14 @@ FC|     TE and NSC             |  Null models
 :-------------------------:|:-------------------------:|:-------------------------:
 ![](https://github.com/Tungcg1906/masters-thesis/blob/main/Images/fc.png) | ![](https://github.com/Tungcg1906/masters-thesis/blob/main/Images/TE.png) |  ![](https://github.com/Tungcg1906/masters-thesis/blob/main/Images/null_model.png)
 
+### 1. Functional connectivity
+This connectivity metric we consider is just the standard Pearson correlation of the smoothed time series, which in neuroscience is commonly referred to as “functional connectivity”. To this aim, we first applied a Gaussian filter to the spike time series and then computed the Pearson correlation. We tried two different values of the filter width (10 ms and 100 ms respectively).
 
+### 2. Transfer entropy
+Connectivity metric analyzed is transfer entropy (TE). TE yields insights into how much information from one neuron’s activity can influence the activity of another neuron. We first computed TE values with delays from 1 to 20, and then kept a unique TE value corresponding to the maximum TE across delays. Raw TE values were later subjected to a null model testing at the level of each connection to identify significant links.
+
+### 3. Number spike coincidences
+The number of spiking coincidences (NSC) within the same window or within two successive windows (delay 0 and delay 1, respectively).
 
 ## Results
 ### 1. Silico analysis
